@@ -20,7 +20,8 @@
             :class="{ 'in-group': isInAnyGroup(participant.id) }"
             draggable="true"
             @dragstart="startDrag($event, participant)"
-            @click="selectParticipant(participant.id)"
+            @click.stop="showGroupSelection(participant, $event)"
+            ref="participantElements"
           >
             <span class="delete-btn" @click.stop="removeParticipant(participant.id)">×</span>
             {{ participant.name }}
@@ -42,6 +43,7 @@
             v-for="group in groups"
             :key="group.id"
             class="group"
+            :data-id="group.id"
             @dragover.prevent
             @drop="dropOnGroup($event, group)"
           >
@@ -60,6 +62,26 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Group Selection Modal -->
+      <div v-if="showGroupModal" class="modal-right" :style="modalPosition">
+        <div class="modal-content">
+          <span class="close-btn" @click="closeModal">×</span>
+          <h3>Добавить {{ selectedParticipant?.name }} в группы</h3>
+          <div class="group-checkboxes">
+            <div v-for="group in availableGroups" :key="group.id" class="group-checkbox">
+              <input
+                type="checkbox"
+                :id="'group-' + group.id"
+                :value="group.id"
+                v-model="selectedGroups"
+              />
+              <label :for="'group-' + group.id">{{ group.name }}</label>
+            </div>
+          </div>
+          <button @click="assignToGroups" class="assign-btn">Добавить</button>
         </div>
       </div>
     </div>
@@ -87,7 +109,11 @@ export default {
     const nextParticipantId = ref(4)
     const nextGroupId = ref(3)
     const draggedParticipant = ref(null)
-    const selectedParticipantId = ref(null)
+    const showGroupModal = ref(false)
+    const selectedParticipant = ref(null)
+    const selectedGroups = ref([])
+    const participantElements = ref([])
+    const modalPosition = ref({ top: '0', left: '0' })
 
     // Computed
     const participantGroups = computed(() => {
@@ -96,6 +122,14 @@ export default {
         map[p.id] = groups.value.filter((g) => g.participants.includes(p.id)).map((g) => g.id)
       })
       return map
+    })
+
+    const availableGroups = computed(() => {
+      if (!selectedParticipant.value) return groups.value
+
+      return groups.value.filter(
+        (group) => !group.participants.includes(selectedParticipant.value.id),
+      )
     })
 
     // Methods
@@ -167,13 +201,59 @@ export default {
       return p ? p.name : ''
     }
 
-    const selectParticipant = (id) => {
-      selectedParticipantId.value = id
+    const showGroupSelection = (participant, event) => {
+      selectedParticipant.value = participant
+      selectedGroups.value = []
+
+      // Подсветка групп, где есть участник
+      groups.value.forEach((group) => {
+        const groupElement = document.querySelector(`.group[data-id="${group.id}"]`)
+        if (groupElement) {
+          if (group.participants.includes(participant.id)) {
+            groupElement.classList.add('highlight-group')
+          } else {
+            groupElement.classList.remove('highlight-group')
+          }
+        }
+      })
+
+      // Позиционирование модального окна
+      const participantRect = event.target.getBoundingClientRect()
+      modalPosition.value = {
+        top: `${participantRect.top}px`,
+        left: `${participantRect.right + 10}px`,
+      }
+
+      showGroupModal.value = true
+    }
+
+    const closeModal = () => {
+      // Убираем подсветку групп
+      document.querySelectorAll('.highlight-group').forEach((el) => {
+        el.classList.remove('highlight-group')
+      })
+
+      showGroupModal.value = false
+      selectedParticipant.value = null
+      selectedGroups.value = []
+    }
+
+    const assignToGroups = () => {
+      if (!selectedParticipant.value || selectedGroups.value.length === 0) return
+
+      // Добавляем в выбранные группы
+      selectedGroups.value.forEach((groupId) => {
+        const group = groups.value.find((g) => g.id === groupId)
+        if (group && !group.participants.includes(selectedParticipant.value.id)) {
+          group.participants.push(selectedParticipant.value.id)
+        }
+      })
+
+      closeModal()
     }
 
     const getArrowStyle = (participantId, groupId) => {
-      // This is a simplified version - in a real app you'd need to calculate
-      // the actual positions of elements for proper arrow drawing
+      // Simplified arrow styling
       return {
         backgroundColor: 'green',
         height: '2px',
@@ -187,7 +267,9 @@ export default {
       groups,
       newParticipantName,
       participantGroups,
-      selectedParticipantId,
+      showGroupModal,
+      selectedParticipant,
+      selectedGroups,
       addParticipant,
       removeParticipant,
       addGroup,
@@ -198,7 +280,9 @@ export default {
       isInAnyGroup,
       getGroupsForParticipant,
       getParticipantName,
-      selectParticipant,
+      showGroupSelection,
+      closeModal,
+      assignToGroups,
       getArrowStyle,
     }
   },
@@ -321,6 +405,65 @@ export default {
 }
 
 .add-group-btn:hover {
+  background-color: #45a049;
+}
+
+.modal-right {
+  height: max-content;
+  position: fixed;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  width: 250px;
+}
+
+.modal-content {
+  padding: 15px;
+}
+
+.highlight-group {
+  box-shadow: 0 0 0 2px #4caf50;
+}
+
+.no-groups-message {
+  padding: 10px;
+  color: #666;
+  text-align: center;
+}
+
+.assign-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.group-checkboxes {
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.group-checkbox {
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+}
+
+.group-checkbox input {
+  margin-right: 10px;
+}
+
+.assign-btn {
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.assign-btn:hover {
   background-color: #45a049;
 }
 </style>
