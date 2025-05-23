@@ -10,10 +10,12 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@vueuse/core": "^13.2.0",
     "babel-cli": "^6.26.0",
     "babel-node": "^0.0.1-security",
     "babel-preset-env": "^1.7.0",
     "core-js": "^3.8.3",
+    "firebase": "^11.8.1",
     "nodemon": "^3.1.10",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3"

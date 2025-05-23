@@ -87,44 +87,70 @@
     </div>
   </div>
 </template>
+<script setup>
+import { ref, onMounted  } from 'vue'
+import { useStore } from './useStore'
 
-<script>
-import { ref, computed } from 'vue'
+const {
+  participants,
+  groups,
+  newParticipantName,
+  showGroupModal,
+  selectedParticipant,
+  selectedGroups,
+  modalPosition,
+  loadData,
+  addParticipant,
+  removeParticipant,
+  addGroup,
+  removeGroup,
+  removeFromGroup,
+  isInAnyGroup,
+  getGroupsForParticipant,
+  getParticipantName,
+  showGroupSelection,
+  closeModal,
+  assignToGroups
+} = useStore()
 
-export default {
-  setup() {
-    // Data
-    const participants = ref([
-      { id: 1, name: 'Иванов Иван Иванович' },
-      { id: 2, name: 'Петров Петр Петрович' },
-      { id: 3, name: 'Сидорова Анна Михайловна' },
-    ])
+// Load data when component mounts
+onMounted(() => {
+  loadData()
+})
 
-    const groups = ref([
-      { id: 1, name: 'Группа 1', participants: [1, 2] },
-      { id: 2, name: 'Группа 2', participants: [2, 3] },
-    ])
+// Data
+// const participants = ref([
+//   { id: 1, name: 'Иванов Иван Иванович' },
+//   { id: 2, name: 'Петров Петр Петрович' },
+//   { id: 3, name: 'Сидорова Анна Михайловна' },
+// ])
 
-    const newParticipantName = ref('')
-    const nextParticipantId = ref(4)
-    const nextGroupId = ref(3)
-    const draggedParticipant = ref(null)
-    const showGroupModal = ref(false)
-    const selectedParticipant = ref(null)
-    const selectedGroups = ref([])
-    //const participantElements = ref([])
-    const modalPosition = ref({ top: '0', left: '0' })
+// const groups = ref([
+//   { id: 1, name: 'Группа 1', participants: [1, 2] },
+//   { id: 2, name: 'Группа 2', participants: [2, 3] },
+// ])
 
-    // Computed
-    const participantGroups = computed(() => {
-      const map = {}
-      participants.value.forEach((p) => {
-        map[p.id] = groups.value.filter((g) => g.participants.includes(p.id)).map((g) => g.id)
-      })
-      return map
-    })
 
-    // const availableGroups = computed(() => {
+// const nextParticipantId = ref(4)
+// const nextGroupId = ref(3)
+const draggedParticipant = ref(null)
+// const showGroupModal = ref(false)
+// const selectedParticipant = ref(null)
+// const selectedGroups = ref([])
+// const modalPosition = ref({ top: '0', left: '0' })
+//const participantElements = ref([])
+
+// Computed
+// const participantGroups = computed(() => {
+//   const map = {}
+//   participants.value.forEach((p) => {
+//     map[p.id] = groups.value.filter((g) => g.participants.includes(p.id)).map((g) => g.id)
+//   })
+//   return map
+// })
+
+// Methods
+// const availableGroups = computed(() => {
     //   if (!selectedParticipant.value) return groups.value
 
     //   return groups.value.filter(
@@ -132,161 +158,32 @@ export default {
     //   )
     // })
 
-    // Methods
-    const addParticipant = () => {
-      if (newParticipantName.value.trim()) {
-        participants.value.push({
-          id: nextParticipantId.value++,
-          name: newParticipantName.value.trim(),
-        })
-        newParticipantName.value = ''
-      }
-    }
 
-    const removeParticipant = (id) => {
-      // Remove from all groups first
-      groups.value.forEach((group) => {
-        group.participants = group.participants.filter((pid) => pid !== id)
-      })
-      // Then remove from participants list
-      participants.value = participants.value.filter((p) => p.id !== id)
-    }
 
-    const addGroup = () => {
-      const groupName = prompt('Введите название группы')
-      if (groupName) {
-        groups.value.push({
-          id: nextGroupId.value++,
-          name: groupName,
-          participants: [],
-        })
-      }
-    }
-
-    const removeGroup = (id) => {
-      groups.value = groups.value.filter((g) => g.id !== id)
-    }
-
-    const startDrag = (event, participant) => {
-      draggedParticipant.value = participant
-      event.dataTransfer.setData('text/plain', participant.id)
-    }
-
-    const dropOnGroup = (event, group) => {
-      if (draggedParticipant.value) {
-        if (!group.participants.includes(draggedParticipant.value.id)) {
-          group.participants.push(draggedParticipant.value.id)
-        }
-        draggedParticipant.value = null
-      }
-    }
-
-    const removeFromGroup = (groupId, participantId) => {
-      const group = groups.value.find((g) => g.id === groupId)
-      if (group) {
-        group.participants = group.participants.filter((id) => id !== participantId)
-      }
-    }
-
-    const isInAnyGroup = (participantId) => {
-      return groups.value.some((g) => g.participants.includes(participantId))
-    }
-
-    const getGroupsForParticipant = (participantId) => {
-      return groups.value.filter((g) => g.participants.includes(participantId))
-    }
-
-    const getParticipantName = (id) => {
-      const p = participants.value.find((p) => p.id === id)
-      return p ? p.name : ''
-    }
-
-    const showGroupSelection = (participant, event) => {
-      selectedParticipant.value = participant
-      selectedGroups.value = []
-
-      // Подсветка групп, где есть участник
-      groups.value.forEach((group) => {
-        const groupElement = document.querySelector(`.group[data-id="${group.id}"]`)
-        if (groupElement) {
-          if (group.participants.includes(participant.id)) {
-            groupElement.classList.add('highlight-group')
-          } else {
-            groupElement.classList.remove('highlight-group')
-          }
-        }
-      })
-
-      // Позиционирование модального окна
-      const participantRect = event.target.getBoundingClientRect()
-      modalPosition.value = {
-        top: `${participantRect.top}px`,
-        left: `${participantRect.right + 10}px`,
-      }
-
-      showGroupModal.value = true
-    }
-
-    const closeModal = () => {
-      // Убираем подсветку групп
-      document.querySelectorAll('.highlight-group').forEach((el) => {
-        el.classList.remove('highlight-group')
-      })
-
-      showGroupModal.value = false
-      selectedParticipant.value = null
-      selectedGroups.value = []
-    }
-
-    const assignToGroups = () => {
-      if (!selectedParticipant.value || selectedGroups.value.length === 0) return
-
-      // Добавляем в выбранные группы
-      selectedGroups.value.forEach((groupId) => {
-        const group = groups.value.find((g) => g.id === groupId)
-        if (group && !group.participants.includes(selectedParticipant.value.id)) {
-          group.participants.push(selectedParticipant.value.id)
-        }
-      })
-
-      closeModal()
-    }
-
-    const getArrowStyle = () => {
-      // Simplified arrow styling
-      return {
-        backgroundColor: 'green',
-        height: '2px',
-        position: 'absolute',
-        transform: 'rotate(45deg)',
-      }
-    }
-
-    return {
-      participants,
-      groups,
-      newParticipantName,
-      participantGroups,
-      showGroupModal,
-      selectedParticipant,
-      selectedGroups,
-      addParticipant,
-      removeParticipant,
-      addGroup,
-      removeGroup,
-      startDrag,
-      dropOnGroup,
-      removeFromGroup,
-      isInAnyGroup,
-      getGroupsForParticipant,
-      getParticipantName,
-      showGroupSelection,
-      closeModal,
-      assignToGroups,
-      getArrowStyle,
-    }
-  },
+const startDrag = (event, participant) => {
+  draggedParticipant.value = participant
+  event.dataTransfer.setData('text/plain', participant.id)
 }
+
+const dropOnGroup = (event, group) => {
+  if (draggedParticipant.value) {
+    if (!group.participants.includes(draggedParticipant.value.id)) {
+      group.participants.push(draggedParticipant.value.id)
+    }
+    draggedParticipant.value = null
+  }
+}
+
+
+// const getArrowStyle = () => {
+//   // Simplified arrow styling
+//   return {
+//     backgroundColor: 'green',
+//     height: '2px',
+//     position: 'absolute',
+//     transform: 'rotate(45deg)',
+//   }
+// }
 </script>
 
 <style>
