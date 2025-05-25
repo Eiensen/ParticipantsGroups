@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        working-directory: ./organize-events  # Переходим в папку перед установкой
+        working-directory: ./organize-events
         run: npm install
 
       - name: Build Vue app
@@ -26,4 +26,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PARTICIPANTS_SEVA }}
           channelId: live
           projectId: participants-seva
-          configPath: ./organize-events/firebase.json
