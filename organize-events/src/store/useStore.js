@@ -2,20 +2,26 @@ import { ref, computed } from "vue";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref as dbRef, set, onValue } from "firebase/database";
 
+// TODO: uncomment then need analytics
+//import { getAnalytics } from "firebase/analytics";
+
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "YOUR_DATABASE_URL",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAK_TOb75b9U0VDx93GLq1VkpCnzZm-DE4",
+  authDomain: "participants-seva.firebaseapp.com",
+  projectId: "participants-seva",
+  storageBucket: "participants-seva.firebasestorage.app",
+  messagingSenderId: "587560809720",
+  appId: "1:587560809720:web:87dd4167777a3d799b770d",
+  measurementId: "G-MLLV2HH2NH",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+// TODO: uncomment then need analytics
+//const analytics = getAnalytics(app);
 
 export function useStore() {
   // Reactive state
@@ -26,6 +32,7 @@ export function useStore() {
   const selectedParticipant = ref(null);
   const selectedGroups = ref([]);
   const modalPosition = ref({ top: "0", left: "0" });
+  const draggedParticipant = ref(null);
 
   // Computed
   const participantGroups = computed(() => {
@@ -120,11 +127,17 @@ export function useStore() {
     selectedGroups.value = [];
   };
   const isInAnyGroup = (participantId) => {
-    return groups.value.some((g) => g.participants.includes(participantId));
+    console.log(groups.value);
+    if (groups.value)
+      return groups.value.some(
+        (g) => g.participants?.includes(participantId) ?? false
+      );
   };
 
   const getGroupsForParticipant = (participantId) => {
-    return groups.value.filter((g) => g.participants.includes(participantId));
+    return groups.value.filter(
+      (g) => g.participants?.includes(participantId) ?? []
+    );
   };
 
   const getParticipantName = (id) => {
@@ -173,6 +186,25 @@ export function useStore() {
     closeModal();
   };
 
+  const startDrag = (event, participant) => {
+    draggedParticipant.value = participant;
+    event.dataTransfer.setData("text/plain", participant.id);
+  };
+
+  const dropOnGroup = (event, group) => {
+    if (draggedParticipant.value) {
+      if (group.participants) {
+        if (!group.participants.includes(draggedParticipant.value.id)) {
+          group.participants.push(draggedParticipant.value.id);
+        }
+      } else {
+        group.participants = [];
+        group.participants.push(draggedParticipant.value.id);
+      }
+      draggedParticipant.value = null;
+    }
+  };
+
   // Other methods (showGroupSelection, closeModal, etc.) remain the same as before
 
   return {
@@ -190,6 +222,8 @@ export function useStore() {
 
     // Methods
     loadData,
+    saveParticipants,
+    saveGroups,
     addParticipant,
     removeParticipant,
     addGroup,
@@ -200,6 +234,9 @@ export function useStore() {
     getParticipantName,
     getGroupsForParticipant,
     isInAnyGroup,
+    closeModal,
+    startDrag,
+    dropOnGroup,
     // ... other methods
   };
 }

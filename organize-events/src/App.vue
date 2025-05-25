@@ -21,23 +21,32 @@
             draggable="true"
             @dragstart="startDrag($event, participant)"
             @click.stop="showGroupSelection(participant, $event)"
-            ref='participantElements'
+            ref="participantElements"
           >
-            <span class="delete-btn" @click.stop="removeParticipant(participant.id)">×</span>
+            <span
+              class="delete-btn"
+              @click.stop="removeParticipant(participant.id)"
+              >×</span
+            >
             {{ participant.name }}
-            <div
+            <!-- <div
               v-for="group in getGroupsForParticipant(participant.id)"
               :key="group.id"
               class="group-arrow"
               :style="getArrowStyle(participant.id, group.id)"
-            ></div>
+            ></div> -->
           </div>
         </div>
       </div>
 
       <!-- Main area - Groups -->
       <div class="groups-area">
-        <button @click="addGroup" class="add-group-btn">Добавить функциональную группу</button>
+        <button @click="addGroup" class="add-group-btn">
+          Добавить функциональную группу
+        </button>
+        <button @click="saveParticipants, saveGroups" class="">
+          Сохранить проект
+        </button>
         <div class="groups-container" @dragover.prevent @drop="dropOnGroup">
           <div
             v-for="group in groups"
@@ -56,7 +65,10 @@
                 class="group-participant"
               >
                 {{ getParticipantName(participantId) }}
-                <span class="remove-from-group" @click="removeFromGroup(group.id, participantId)">
+                <span
+                  class="remove-from-group"
+                  @click="removeFromGroup(group.id, participantId)"
+                >
                   ×
                 </span>
               </div>
@@ -71,7 +83,11 @@
           <span class="close-btn" @click="closeModal">×</span>
           <h3>Добавить {{ selectedParticipant?.name }} в группы</h3>
           <div class="group-checkboxes">
-            <div v-for="group in availableGroups" :key="group.id" class="group-checkbox">
+            <div
+              v-for="group in availableGroups"
+              :key="group.id"
+              class="group-checkbox"
+            >
               <input
                 type="checkbox"
                 :id="'group-' + group.id"
@@ -88,8 +104,8 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted  } from 'vue'
-import { useStore } from './useStore'
+import { onMounted } from "vue";
+import { useStore } from "./store/useStore.js";
 
 const {
   participants,
@@ -100,90 +116,27 @@ const {
   selectedGroups,
   modalPosition,
   loadData,
+  saveParticipants,
+  saveGroups,
   addParticipant,
   removeParticipant,
   addGroup,
   removeGroup,
   removeFromGroup,
   isInAnyGroup,
-  getGroupsForParticipant,
+  //getGroupsForParticipant,
   getParticipantName,
   showGroupSelection,
   closeModal,
-  assignToGroups
-} = useStore()
+  assignToGroups,
+  startDrag,
+  dropOnGroup,
+} = useStore();
 
 // Load data when component mounts
 onMounted(() => {
-  loadData()
-})
-
-// Data
-// const participants = ref([
-//   { id: 1, name: 'Иванов Иван Иванович' },
-//   { id: 2, name: 'Петров Петр Петрович' },
-//   { id: 3, name: 'Сидорова Анна Михайловна' },
-// ])
-
-// const groups = ref([
-//   { id: 1, name: 'Группа 1', participants: [1, 2] },
-//   { id: 2, name: 'Группа 2', participants: [2, 3] },
-// ])
-
-
-// const nextParticipantId = ref(4)
-// const nextGroupId = ref(3)
-const draggedParticipant = ref(null)
-// const showGroupModal = ref(false)
-// const selectedParticipant = ref(null)
-// const selectedGroups = ref([])
-// const modalPosition = ref({ top: '0', left: '0' })
-//const participantElements = ref([])
-
-// Computed
-// const participantGroups = computed(() => {
-//   const map = {}
-//   participants.value.forEach((p) => {
-//     map[p.id] = groups.value.filter((g) => g.participants.includes(p.id)).map((g) => g.id)
-//   })
-//   return map
-// })
-
-// Methods
-// const availableGroups = computed(() => {
-    //   if (!selectedParticipant.value) return groups.value
-
-    //   return groups.value.filter(
-    //     (group) => !group.participants.includes(selectedParticipant.value.id),
-    //   )
-    // })
-
-
-
-const startDrag = (event, participant) => {
-  draggedParticipant.value = participant
-  event.dataTransfer.setData('text/plain', participant.id)
-}
-
-const dropOnGroup = (event, group) => {
-  if (draggedParticipant.value) {
-    if (!group.participants.includes(draggedParticipant.value.id)) {
-      group.participants.push(draggedParticipant.value.id)
-    }
-    draggedParticipant.value = null
-  }
-}
-
-
-// const getArrowStyle = () => {
-//   // Simplified arrow styling
-//   return {
-//     backgroundColor: 'green',
-//     height: '2px',
-//     position: 'absolute',
-//     transform: 'rotate(45deg)',
-//   }
-// }
+  loadData();
+});
 </script>
 
 <style>
