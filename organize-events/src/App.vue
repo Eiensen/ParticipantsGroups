@@ -10,12 +10,13 @@
             @keyup.enter="addParticipant"
             placeholder="Введите ФИО"
           />
-          <button @click="addParticipant">Добавить</button>
+          <button @click="addParticipant">+</button>
         </div>
         <div class="participants-list">
           <div
             v-for="participant in participants"
             :key="participant.id"
+            :data-id="participant.id"
             class="participant-item"
             :class="{ 'in-group': isInAnyGroup(participant.id) }"
             draggable="true"
@@ -23,12 +24,12 @@
             @click.stop="showGroupSelection(participant, $event)"
             ref="participantElements"
           >
+            {{ participant.name }}
             <span
               class="delete-btn"
               @click.stop="removeParticipant(participant.id)"
-              >×</span
-            >
-            {{ participant.name }}
+              >Х</span
+            >            
             <!-- <div
               v-for="group in getGroupsForParticipant(participant.id)"
               :key="group.id"
@@ -44,7 +45,7 @@
         <button @click="addGroup" class="add-group-btn">
           Добавить функциональную группу
         </button>
-        <button @click="saveParticipants, saveGroups" class="">
+        <button @click="saveParticipants" class="">
           Сохранить проект
         </button>
         <div class="groups-container" @dragover.prevent @drop="dropOnGroup">
@@ -56,8 +57,9 @@
             @dragover.prevent
             @drop="dropOnGroup($event, group)"
           >
-            <span class="delete-btn" @click="removeGroup(group.id)">×</span>
             <h3>{{ group.name }}</h3>
+            <span class="group-delete-btn" @click="removeGroup(group.id)">X</span>
+               
             <div class="group-participants">
               <div
                 v-for="participantId in group.participants"
@@ -117,7 +119,7 @@ const {
   modalPosition,
   loadData,
   saveParticipants,
-  saveGroups,
+  //saveGroups,
   addParticipant,
   removeParticipant,
   addGroup,
@@ -151,8 +153,8 @@ onMounted(() => {
   width: 100%;
 }
 
-.participants-sidebar {
-  width: 300px;
+.participants-sidebar {  
+  max-width: 30vw;
   padding: 20px;
   background-color: #f5f5f5;
   border-right: 1px solid #ddd;
@@ -180,6 +182,14 @@ onMounted(() => {
 
 .add-participant button {
   padding: 8px 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.add-participant button:hover {
+  background-color: #45a049;
 }
 
 .participants-list {
@@ -193,6 +203,9 @@ onMounted(() => {
   border: 1px solid #ddd;
   padding: 10px;
   position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   cursor: move;
 }
 
@@ -201,6 +214,7 @@ onMounted(() => {
 }
 
 .group {
+  max-width: 60vw;
   border: 1px solid #ddd;
   padding: 15px;
   margin-bottom: 20px;
@@ -228,21 +242,27 @@ onMounted(() => {
 }
 
 .delete-btn,
-.remove-from-group {
+.remove-from-group,
+.group-delete-btn {
   cursor: pointer;
   color: red;
-  margin-right: 5px;
 }
 
 .delete-btn {
-  position: absolute;
   right: 5px;
   top: 5px;
   font-size: 18px;
 }
 
 .remove-from-group {
-  margin-left: 5px;
+  margin-left: 15px;
+}
+
+.group-delete-btn {
+  right: 10px;
+  top: 10px;
+  font-size: 18px;
+  position: absolute;
 }
 
 .add-group-btn {
@@ -275,6 +295,10 @@ onMounted(() => {
 
 .highlight-group {
   box-shadow: 0 0 0 2px #4caf50;
+}
+
+.highlight-error-participant{
+  box-shadow: 0 0 0 2px #e44e4e;
 }
 
 .no-groups-message {

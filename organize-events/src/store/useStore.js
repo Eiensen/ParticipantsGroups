@@ -69,15 +69,35 @@ export function useStore() {
 
   // Methods
   const addParticipant = async () => {
-    if (newParticipantName.value.trim()) {
-      const newId = Math.max(0, ...participants.value.map((p) => p.id)) + 1;
-      participants.value.push({
-        id: newId,
-        name: newParticipantName.value.trim(),
-      });
+    const trimmedName = newParticipantName.value.trim();
+    if (!trimmedName) return;
+
+    const existingParticipant = participants.value.find(
+      (p) => p.name === trimmedName
+    );
+
+    if (existingParticipant) {
+      highlightParticipantError(existingParticipant.id);
       newParticipantName.value = "";
-      await saveParticipants();
+      return;
     }
+
+    const newId = Math.max(0, ...participants.value.map((p) => p.id)) + 1;
+    participants.value.push({ id: newId, name: trimmedName });
+    newParticipantName.value = "";
+    await saveParticipants();
+  };
+
+  const highlightParticipantError = (participantId) => {
+    const participantElement = document.querySelector(
+      `.participant-item[data-id="${participantId}"]`
+    );
+    if (!participantElement) return;
+
+    participantElement.classList.add("highlight-error-participant");
+    setTimeout(() => {
+      participantElement.classList.remove("highlight-error-participant");
+    }, 2000);
   };
 
   const removeParticipant = async (id) => {
@@ -127,7 +147,6 @@ export function useStore() {
     selectedGroups.value = [];
   };
   const isInAnyGroup = (participantId) => {
-    console.log(groups.value);
     if (groups.value)
       return groups.value.some(
         (g) => g.participants?.includes(participantId) ?? false
@@ -150,12 +169,12 @@ export function useStore() {
     selectedGroups.value = [];
 
     // Подсветка групп, где есть участник
-    groups.value.forEach((group) => {
+    groups.value?.forEach((group) => {
       const groupElement = document.querySelector(
         `.group[data-id="${group.id}"]`
       );
       if (groupElement) {
-        if (group.participants.includes(participant.id)) {
+        if (group.participants?.includes(participant.id) ?? false) {
           groupElement.classList.add("highlight-group");
         } else {
           groupElement.classList.remove("highlight-group");
@@ -205,8 +224,6 @@ export function useStore() {
     }
   };
 
-  // Other methods (showGroupSelection, closeModal, etc.) remain the same as before
-
   return {
     // State
     participants,
@@ -237,6 +254,5 @@ export function useStore() {
     closeModal,
     startDrag,
     dropOnGroup,
-    // ... other methods
   };
 }
