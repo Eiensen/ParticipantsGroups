@@ -1,86 +1,135 @@
+<script setup lang="ts">
+import { onMounted, computed, CSSProperties } from "vue";
+import { useStore } from "./store/useStore";
+import type { Group, Participant } from "./types/index.ts";
+import type { StoreRefs } from "./types/vue";
+import { ParticipantList } from "./components/participants";
+import { GroupList } from "./components/groups";
+
+// Get store and destructure with proper typing
+const store = useStore();
+const {
+  participants,
+  groups,
+  newParticipantName,
+  showGroupModal,
+  selectedParticipant,
+  selectedGroups,
+  modalPosition,
+  loadData,
+  saveParticipants,
+  addParticipant,
+  removeParticipant,
+  addGroup,
+  removeGroup,
+  removeFromGroup,
+  isInAnyGroup,
+  getParticipantName,
+  showGroupSelection,
+  closeModal,
+  assignToGroups,
+  startDrag,
+  dropOnGroup,
+  loading,
+  error
+} = store as unknown as StoreRefs & typeof store;
+
+// Compute available groups for selection
+const availableGroups = computed<Group[]>(() => groups.value);
+
+// Computed style binding for modal
+const modalStyleBinding = computed<CSSProperties>(() => ({
+  top: modalPosition.value.top,
+  left: modalPosition.value.left
+}));
+
+// Event handlers with proper typing
+const handleDropOnGroup = (event: DragEvent, group: Group) => {
+  event.preventDefault();
+  dropOnGroup(event, group);
+};
+
+const handleStartDrag = (event: DragEvent, participant: Participant) => {
+  startDrag(event, participant);
+};
+
+// Render function for group content
+const renderGroupContent = (group: Group) => {
+  return {
+    template: `
+      <div class="group-participants">
+        <div v-for="participantId in group.participants"
+             :key="participantId"
+             class="group-participant">
+          {{ getParticipantName(participantId) }}
+          <span class="remove-from-group"
+                @click="() => removeFromGroup(group.id, participantId)">×</span>
+        </div>
+      </div>
+    `,
+    methods: {
+      getParticipantName,
+      removeFromGroup
+    },
+    data() {
+      return { group };
+    }
+  };
+};
+
+// Load data when component mounts
+onMounted(() => {
+  loadData();
+});
+</script>
+
 <template>
   <div class="app">
     <div class="container">
-      <!-- Left sidebar - Participants list -->
-      <div class="participants-sidebar">
-        <h2>Участники</h2>
-        <div class="add-participant">
-          <input
-            v-model="newParticipantName"
-            @keyup.enter="addParticipant"
-            placeholder="Введите ФИО"
-          />
-          <button @click="addParticipant">+</button>
-        </div>
-        <div class="participants-list">
-          <div
-            v-for="participant in participants"
-            :key="participant.id"
-            :data-id="participant.id"
-            class="participant-item"
-            :class="{ 'in-group': isInAnyGroup(participant.id) }"
-            draggable="true"
-            @dragstart="startDrag($event, participant)"
-            @click.stop="showGroupSelection(participant, $event)"
-            ref="participantElements"
-          >
-            {{ participant.name }}
-            <span
-              class="delete-btn"
-              @click.stop="removeParticipant(participant.id)"
-              >Х</span
-            >            
-            <!-- <div
-              v-for="group in getGroupsForParticipant(participant.id)"
-              :key="group.id"
-              class="group-arrow"
-              :style="getArrowStyle(participant.id, group.id)"
-            ></div> -->
-          </div>
-        </div>
+      <!-- Error message -->
+      <div v-if="error" class="error-message">
+        {{ error.message }}
       </div>
+
+      <!-- Loading overlay -->
+      <div v-if="loading.participants || loading.groups" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Загрузка...</p>
+      </div>
+
+      <!-- Left sidebar - Participants list -->
+      <ParticipantList
+        :participants="participants"
+        :newParticipantName="newParticipantName"
+        :addParticipant="addParticipant"
+        :removeParticipant="removeParticipant"
+        :onParticipantSelect="showGroupSelection"
+        :onParticipantDragStart="handleStartDrag"
+        :isInGroup="isInAnyGroup"
+        :loading="loading.addParticipant"
+      />
 
       <!-- Main area - Groups -->
       <div class="groups-area">
-        <button @click="addGroup" class="add-group-btn">
-          Добавить функциональную группу
-        </button>
-        <button @click="saveParticipants" class="">
-          Сохранить проект
-        </button>
-        <div class="groups-container" @dragover.prevent @drop="dropOnGroup">
-          <div
-            v-for="group in groups"
-            :key="group.id"
-            class="group"
-            :data-id="group.id"
-            @dragover.prevent
-            @drop="dropOnGroup($event, group)"
-          >
-            <h3>{{ group.name }}</h3>
-            <span class="group-delete-btn" @click="removeGroup(group.id)">X</span>
-               
-            <div class="group-participants">
-              <div
-                v-for="participantId in group.participants"
-                :key="participantId"
-                class="group-participant"
-              >
-                {{ getParticipantName(participantId) }}
-                <span
-                  class="remove-from-group"
-                  @click="removeFromGroup(group.id, participantId)"
-                >
-                  ×
-                </span>
-              </div>
-            </div>
-          </div>
+        <div class="groups-actions">
+          <button @click="addGroup" class="add-group-btn" :disabled="loading.addGroup">
+            {{ loading.addGroup ? 'Создание...' : 'Добавить функциональную группу' }}
+          </button>
+          <button @click="saveParticipants" class="save-btn" :disabled="loading.save">
+            {{ loading.save ? 'Сохранение...' : 'Сохранить проект' }}
+          </button>
         </div>
+
+        <GroupList
+          :groups="groups"
+          :onRemoveGroup="removeGroup"
+          :onDropOnGroup="handleDropOnGroup"
+          :renderGroupContent="renderGroupContent"
+        />
       </div>
 
       <!-- Group Selection Modal -->
-      <div v-if="showGroupModal" class="modal-right" :style="modalPosition">
+      <div v-if="showGroupModal" class="modal-right" :style="modalStyleBinding">
         <div class="modal-content">
           <span class="close-btn" @click="closeModal">×</span>
           <h3>Добавить {{ selectedParticipant?.name }} в группы</h3>
@@ -105,41 +154,6 @@
     </div>
   </div>
 </template>
-<script setup>
-import { onMounted } from "vue";
-import { useStore } from "./store/useStore.js";
-
-const {
-  participants,
-  groups,
-  newParticipantName,
-  showGroupModal,
-  selectedParticipant,
-  selectedGroups,
-  modalPosition,
-  loadData,
-  saveParticipants,
-  //saveGroups,
-  addParticipant,
-  removeParticipant,
-  addGroup,
-  removeGroup,
-  removeFromGroup,
-  isInAnyGroup,
-  //getGroupsForParticipant,
-  getParticipantName,
-  showGroupSelection,
-  closeModal,
-  assignToGroups,
-  startDrag,
-  dropOnGroup,
-} = useStore();
-
-// Load data when component mounts
-onMounted(() => {
-  loadData();
-});
-</script>
 
 <style>
 .app {
@@ -153,15 +167,6 @@ onMounted(() => {
   width: 100%;
 }
 
-.participants-sidebar {  
-  max-width: 30vw;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-right: 1px solid #ddd;
-  height: 100vh;
-  overflow-y: auto;
-}
-
 .groups-area {
   flex: 1;
   padding: 20px;
@@ -169,61 +174,25 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.add-participant {
+.groups-actions {
   display: flex;
-  margin-bottom: 15px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
-.add-participant input {
-  flex: 1;
-  padding: 8px;
-  margin-right: 5px;
-}
-
-.add-participant button {
-  padding: 8px 12px;
+.add-group-btn,
+.save-btn {
+  padding: 8px 15px;
   background-color: #4caf50;
   color: white;
   border: none;
   cursor: pointer;
+  border-radius: 4px;
 }
 
-.add-participant button:hover {
+.add-group-btn:hover,
+.save-btn:hover {
   background-color: #45a049;
-}
-
-.participants-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.participant-item {
-  background-color: white;
-  border: 1px solid #ddd;
-  padding: 10px;
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  cursor: move;
-}
-
-.participant-item.in-group {
-  background-color: #e6ffe6;
-}
-
-.group {
-  max-width: 60vw;
-  border: 1px solid #ddd;
-  padding: 15px;
-  margin-bottom: 20px;
-  background-color: #f9f9f9;
-  position: relative;
-}
-
-.group h3 {
-  margin-top: 0;
 }
 
 .group-participants {
@@ -239,43 +208,21 @@ onMounted(() => {
   padding: 5px 10px;
   display: flex;
   align-items: center;
-}
-
-.delete-btn,
-.remove-from-group,
-.group-delete-btn {
-  cursor: pointer;
-  color: red;
-}
-
-.delete-btn {
-  right: 5px;
-  top: 5px;
-  font-size: 18px;
+  border-radius: 4px;
 }
 
 .remove-from-group {
+  cursor: pointer;
+  color: red;
   margin-left: 15px;
 }
 
-.group-delete-btn {
-  right: 10px;
-  top: 10px;
-  font-size: 18px;
-  position: absolute;
+.highlight-group {
+  box-shadow: 0 0 0 2px #4caf50;
 }
 
-.add-group-btn {
-  margin-bottom: 20px;
-  padding: 8px 15px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.add-group-btn:hover {
-  background-color: #45a049;
+.highlight-error-participant {
+  box-shadow: 0 0 0 2px #e44e4e;
 }
 
 .modal-right {
@@ -293,23 +240,12 @@ onMounted(() => {
   padding: 15px;
 }
 
-.highlight-group {
-  box-shadow: 0 0 0 2px #4caf50;
-}
-
-.highlight-error-participant{
-  box-shadow: 0 0 0 2px #e44e4e;
-}
-
-.no-groups-message {
-  padding: 10px;
-  color: #666;
-  text-align: center;
-}
-
-.assign-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.close-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  cursor: pointer;
+  font-size: 18px;
 }
 
 .group-checkboxes {
@@ -329,6 +265,7 @@ onMounted(() => {
 }
 
 .assign-btn {
+  width: 100%;
   padding: 8px 16px;
   background-color: #4caf50;
   color: white;
@@ -339,5 +276,57 @@ onMounted(() => {
 
 .assign-btn:hover {
   background-color: #45a049;
+}
+
+.error-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #ff4444;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4caf50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.add-group-btn:disabled,
+.save-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 </style>
