@@ -1,16 +1,15 @@
-import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
-import { ModalItem, ButtonItem } from "../views";
+import {
+  createRouter,
+  createWebHashHistory,
+  type RouteRecordRaw,
+} from "vue-router";
+import App from "../App.vue";
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "home",
-    component: ModalItem,
-  },
-  {
-    path: "/about",
-    name: "about",
-    component: ButtonItem,
+    component: App,
   },
 ];
 
