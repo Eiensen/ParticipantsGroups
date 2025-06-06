@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": "now < 1750712400000",
+    ".write": "now < 1750712400000",
+    "participants": {
+      "$participant": {
+        ".validate": "newData.hasChildren(['name', 'email'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$/)"
+        }
+      }
+    },
+    "groups": {
+      "$group": {
+        ".validate": "newData.hasChildren(['name'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "participants": {
+          ".validate": "newData.isArray()"
+        }
+      }
+    }
+  }
+}
