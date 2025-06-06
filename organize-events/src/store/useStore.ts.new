@@ -1,0 +1,50 @@
+import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { ref as dbRef, set, onValue } from "firebase/database";
+import { db } from "../firebase/config";
+import type { Participant, Group, ModalPosition, StoreState, AppError } from "../types";
+
+interface UseStore {
+  // State refs
+  participants: Ref<Participant[]>;
+  groups: Ref<Group[]>;
+  newParticipantName: Ref<string>;
+  showGroupModal: Ref<boolean>;
+  selectedParticipant: Ref<Participant | null>;
+  selectedGroups: Ref<number[]>;
+  modalPosition: Ref<ModalPosition>;
+  draggedParticipant: Ref<Participant | null>;
+  loading: Ref<{
+    participants: boolean;
+    groups: boolean;
+    addParticipant: boolean;
+    addGroup: boolean;
+    save: boolean;
+  }>;
+  error: Ref<AppError | null>;
+
+  // Computed refs
+  participantGroups: ComputedRef<Record<number, number[]>>;
+
+  // Methods
+  loadData: () => Promise<void>;
+  saveParticipants: () => Promise<void>;
+  saveGroups: () => Promise<void>;
+  addParticipant: () => Promise<void>;
+  removeParticipant: (id: number) => Promise<void>;
+  addGroup: () => Promise<void>;
+  removeGroup: (id: number) => Promise<void>;
+  removeFromGroup: (groupId: number, participantId: number) => Promise<void>;
+  assignToGroups: () => Promise<void>;
+  showGroupSelection: (participant: Participant, event: MouseEvent) => void;
+  getParticipantName: (id: number) => string;
+  getGroupsForParticipant: (participantId: number) => Group[];
+  isInAnyGroup: (participantId: number) => boolean;
+  closeModal: () => void;
+  startDrag: (event: DragEvent, participant: Participant) => void;
+  dropOnGroup: (event: DragEvent, group: Group) => Promise<void>;
+  highlightParticipantError: (participantId: number) => void;
+}
+
+export function useStore(): UseStore {
+  // ... остальной код без изменений
+}

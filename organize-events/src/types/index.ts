@@ -2,17 +2,26 @@
  * Interface representing a participant in the system
  */
 export interface Participant {
-  id: number;
+  id?: string;
   name: string;
+  email: string;
+  phone?: string;
+  groupId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**
  * Interface representing a group in the system
  */
 export interface Group {
-  id: number;
+  id?: string;
   name: string;
-  participants: number[];
+  description?: string;
+  maxParticipants?: number;
+  participants: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**

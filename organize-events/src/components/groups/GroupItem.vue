@@ -1,34 +1,85 @@
 <script setup lang="ts">
-import { defineProps } from 'vue';
-import type { Group } from '../../types';
+import { computed } from 'vue';
+import type { Group, Participant } from '../../types';
 
 interface Props {
   group: Group;
-  onRemove?: (groupId: number) => void;
+  participants: Participant[];
+  onRemove?: (groupId: string) => void;
   onDrop?: (event: DragEvent) => void;
+  onUpdateGroup?: (id: string, updates: Partial<Group>) => void;
 }
 
 const props = defineProps<Props>();
+const emit = defineEmits<{
+  (e: 'remove', id: string): void;
+  (e: 'update', id: string, updates: Partial<Group>): void;
+  (e: 'drop', event: DragEvent): void;
+}>();
+
+const groupParticipants = computed(() => {
+  return props.participants.filter(p => props.group.participants.includes(p.id || ''));
+});
 
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
-  props.onDrop?.(event);
+  emit('drop', event);
 };
 
 const handleRemove = () => {
-  props.onRemove?.(props.group.id);
+  if (props.group.id && confirm('Вы уверены, что хотите удалить эту группу?')) {
+    emit('remove', props.group.id);
+  }
+};
+
+const handleUpdate = (updates: Partial<Group>) => {
+  if (props.group.id) {
+    emit('update', props.group.id, updates);
+  }
 };
 </script>
 
-<template>
-  <div 
-    class="group"
+<template>  <div 
+    class="group-item"
     :data-id="group.id"
-    data-testid="group-item"
+    :data-testid="'group-' + group.id"
     @dragover.prevent
     @drop="handleDrop"
   >
-    <h3>{{ group.name }}</h3>
+    <div class="group-header">
+      <h3>{{ group.name }}</h3>
+      <div class="group-info">
+        <span v-if="group.maxParticipants" class="participants-count">
+          {{ groupParticipants.length }}/{{ group.maxParticipants }}
+        </span>
+        <button @click="handleRemove" class="remove-button">×</button>
+      </div>
+    </div>
+    
+    <p v-if="group.description" class="group-description">
+      {{ group.description }}
+    </p>
+
+    <div class="participants-list">
+      <div v-if="groupParticipants.length === 0" class="empty-message">
+        Перетащите участников сюда
+      </div>
+      <div
+        v-for="participant in groupParticipants"
+        :key="participant.id"
+        class="participant-chip"
+      >
+        {{ participant.name }}
+        <button 
+          @click="handleUpdate({ 
+            participants: group.participants.filter((id: any) => id !== participant.id)
+          })"
+          class="remove-participant"
+        >
+          ×
+        </button>
+      </div>
+    </div>
     <span 
       v-if="onRemove"
       class="group-delete-btn" 
@@ -41,25 +92,112 @@ const handleRemove = () => {
 </template>
 
 <style scoped>
-.group {
-  max-width: 60vw;
+.group-item {
+  padding: 16px;
+  margin-bottom: 16px;
   border: 1px solid #ddd;
-  padding: 15px;
-  margin-bottom: 20px;
-  background-color: #f9f9f9;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
   position: relative;
 }
 
-.group h3 {
-  margin-top: 0;
+.group-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.group-delete-btn {
-  right: 10px;
-  top: 10px;
-  font-size: 18px;
-  position: absolute;
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.group-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.group-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.participants-count {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.remove-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
   cursor: pointer;
-  color: red;
+  padding: 4px;
+  line-height: 1;
+}
+
+.remove-button:hover {
+  color: #dc3545;
+}
+
+.group-description {
+  margin: 0 0 16px 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.participants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 50px;
+}
+
+.empty-message {
+  width: 100%;
+  text-align: center;
+  color: #999;
+  padding: 16px;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+}
+
+.participant-chip {
+  background-color: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9em;
+}
+
+.remove-participant {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.remove-participant:hover {
+  color: #dc3545;
+}
+
+.group-item.highlight-group {
+  border-color: #4CAF50;
+  background-color: #f1f8e9;
+}
+
+.group-item.drag-over {
+  border-style: dashed;
+  border-color: #2196F3;
+  background-color: #e3f2fd;
 }
 </style>

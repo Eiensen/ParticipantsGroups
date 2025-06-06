@@ -1,281 +1,384 @@
 <script setup lang="ts">
-import { onMounted, computed, CSSProperties } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useStore } from "./store/useStore";
-import type { Group, Participant } from "./types/index.ts";
-import type { StoreRefs } from "./types/vue";
+import type { Group } from "./types";
 import { ParticipantList } from "./components/participants";
 import { GroupList } from "./components/groups";
+import ModalItem from "./views/ModalItem.vue";
 
-// Get store and destructure with proper typing
 const store = useStore();
 const {
-  participants,
-  groups,
-  newParticipantName,
-  showGroupModal,
-  selectedParticipant,
-  selectedGroups,
-  modalPosition,
-  loadData,
-  saveParticipants,
+  state,
   addParticipant,
-  removeParticipant,
+  updateParticipant,
+  deleteParticipant,
   addGroup,
-  removeGroup,
-  removeFromGroup,
-  isInAnyGroup,
-  getParticipantName,
-  showGroupSelection,
-  closeModal,
-  assignToGroups,
-  startDrag,
-  dropOnGroup,
-  loading,
-  error
-} = store as unknown as StoreRefs & typeof store;
+  updateGroup,
+  deleteGroup,
+  loadData
+} = store;
 
-// Compute available groups for selection
-const availableGroups = computed<Group[]>(() => groups.value);
-
-// Computed style binding for modal
-const modalStyleBinding = computed<CSSProperties>(() => ({
-  top: modalPosition.value.top,
-  left: modalPosition.value.left
-}));
-
-// Event handlers with proper typing
-const handleDropOnGroup = (event: DragEvent, group: Group) => {
-  event.preventDefault();
-  dropOnGroup(event, group);
-};
-
-const handleStartDrag = (event: DragEvent, participant: Participant) => {
-  startDrag(event, participant);
-};
-
-// Render function for group content
-const renderGroupContent = (group: Group) => {
-  return {
-    template: `
-      <div class="group-participants">
-        <div v-for="participantId in group.participants"
-             :key="participantId"
-             class="group-participant">
-          {{ getParticipantName(participantId) }}
-          <span class="remove-from-group"
-                @click="() => removeFromGroup(group.id, participantId)">×</span>
-        </div>
-      </div>
-    `,
-    methods: {
-      getParticipantName,
-      removeFromGroup
-    },
-    data() {
-      return { group };
-    }
-  };
-};
+const loading = computed(() => state.value.loading);
+const error = computed(() => state.value.error);
+const participants = computed(() => state.value.participants);
+const groups = computed(() => state.value.groups);
 
 // Load data when component mounts
 onMounted(() => {
   loadData();
 });
+
+// Modal state for new participant
+const showParticipantModal = ref(false);
+const newParticipant = ref({
+  name: '',
+  email: '',
+  phone: '',
+  groupId: ''
+});
+
+// Modal state for new group
+const showGroupModal = ref(false);
+const newGroup = ref({
+  name: '',
+  description: '',
+  maxParticipants: 0,
+  participants: [] as string[]
+});
+
+// Handlers
+const handleAddParticipant = () => {
+  if (!newParticipant.value.name || !newParticipant.value.email) return;
+
+  addParticipant({
+    ...newParticipant.value,
+  });
+  
+  showParticipantModal.value = false;
+  newParticipant.value = {
+    name: '',
+    email: '',
+    phone: '',
+    groupId: ''
+  };
+};
+
+const handleAddGroup = () => {
+  if (!newGroup.value.name) return;
+
+  addGroup({
+    ...newGroup.value,
+  });
+
+  showGroupModal.value = false;
+  newGroup.value = {
+    name: '',
+    description: '',
+    maxParticipants: 0,
+    participants: []
+  };
+};
+
+const handleDropOnGroup = (event: DragEvent, groupId: string) => {
+  const participantId = event.dataTransfer?.getData('text/plain');
+  if (!participantId) return;
+
+  const group = state.value.groups.find(g => g.id === groupId);
+  if (!group) return;
+
+  updateGroup(groupId, {
+    participants: [...(group.participants || []), participantId]
+  });
+};
+
+// Compute available groups for selection
+const availableGroups = computed<Group[]>(() => state.value.groups);
+
+// Computed style binding for modal
+// const modalStyleBinding = computed<CSSProperties>(() => ({
+//   top: modalPosition.value.top,
+//   left: modalPosition.value.left
+// }));
 </script>
 
 <template>
   <div class="app">
-    <div class="container">
-      <!-- Error message -->
-      <div v-if="error" class="error-message">
-        {{ error.message }}
-      </div>
-
-      <!-- Loading overlay -->
-      <div v-if="loading.participants || loading.groups" class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <p>Загрузка...</p>
-      </div>
-
-      <!-- Left sidebar - Participants list -->
-      <ParticipantList
-        :participants="participants"
-        :newParticipantName="newParticipantName"
-        :addParticipant="addParticipant"
-        :removeParticipant="removeParticipant"
-        :onParticipantSelect="showGroupSelection"
-        :onParticipantDragStart="handleStartDrag"
-        :isInGroup="isInAnyGroup"
-        :loading="loading.addParticipant"
-      />
-
-      <!-- Main area - Groups -->
-      <div class="groups-area">
-        <div class="groups-actions">
-          <button @click="addGroup" class="add-group-btn" :disabled="loading.addGroup">
-            {{ loading.addGroup ? 'Создание...' : 'Добавить функциональную группу' }}
-          </button>
-          <button @click="saveParticipants" class="save-btn" :disabled="loading.save">
-            {{ loading.save ? 'Сохранение...' : 'Сохранить проект' }}
-          </button>
-        </div>
-
-        <GroupList
-          :groups="groups"
-          :onRemoveGroup="removeGroup"
-          :onDropOnGroup="handleDropOnGroup"
-          :renderGroupContent="renderGroupContent"
-        />
-      </div>
-
-      <!-- Group Selection Modal -->
-      <div v-if="showGroupModal" class="modal-right" :style="modalStyleBinding">
-        <div class="modal-content">
-          <span class="close-btn" @click="closeModal">×</span>
-          <h3>Добавить {{ selectedParticipant?.name }} в группы</h3>
-          <div class="group-checkboxes">
-            <div
-              v-for="group in availableGroups"
-              :key="group.id"
-              class="group-checkbox"
-            >
-              <input
-                type="checkbox"
-                :id="'group-' + group.id"
-                :value="group.id"
-                v-model="selectedGroups"
-              />
-              <label :for="'group-' + group.id">{{ group.name }}</label>
-            </div>
-          </div>
-          <button @click="assignToGroups" class="assign-btn">Добавить</button>
-        </div>
-      </div>
+    <!-- Error message -->
+    <div v-if="error" class="error-message">
+      {{ error.message }}
     </div>
+
+    <!-- Loading overlay -->
+    <div v-if="loading.participants || loading.groups" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>Загрузка...</p>
+    </div>
+
+    <div class="container">
+      <!-- Header section -->
+      <header class="header">
+        <h1>Управление участниками и группами</h1>
+        <div class="header-actions">
+          <button 
+            @click="showParticipantModal = true"
+            class="action-button"
+          >
+            Добавить участника
+          </button>
+          <button 
+            @click="showGroupModal = true"
+            class="action-button"
+          >
+            Создать группу
+          </button>
+        </div>
+      </header>
+
+      <!-- Main content -->
+      <main class="main-content">
+        <div class="participants-section">
+          <ParticipantList
+            :participants="participants"
+            :loading="loading.participants"
+            @remove="deleteParticipant"
+            @update="updateParticipant"
+          />
+        </div>
+
+        <div class="groups-section">
+          <GroupList
+            :groups="groups"
+            :participants="participants"
+            :loading="loading.groups"
+            @remove="deleteGroup"
+            @update="updateGroup"
+            @drop="handleDropOnGroup"
+          />
+        </div>
+      </main>
+    </div>
+
+    <!-- New Participant Modal -->
+    <ModalItem
+      v-if="showParticipantModal"
+      @close="showParticipantModal = false"
+    >
+      <template #header>
+        <h3>Добавить участника</h3>
+      </template>
+
+      <form @submit.prevent="handleAddParticipant">
+        <div class="form-group">
+          <label for="name">Имя</label>
+          <input
+            id="name"
+            v-model="newParticipant.name"
+            type="text"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="newParticipant.email"
+            type="email"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Телефон</label>
+          <input
+            id="phone"
+            v-model="newParticipant.phone"
+            type="tel"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Добавить</button>
+          <button type="button" @click="showParticipantModal = false">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </ModalItem>
+
+    <!-- New Group Modal -->
+    <ModalItem
+      v-if="showGroupModal"
+      @close="showGroupModal = false"
+    >
+      <template #header>
+        <h3>Создать группу</h3>
+      </template>
+
+      <form @submit.prevent="handleAddGroup">
+        <div class="form-group">
+          <label for="groupName">Название</label>
+          <input
+            id="groupName"
+            v-model="newGroup.name"
+            type="text"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="description">Описание</label>
+          <textarea
+            id="description"
+            v-model="newGroup.description"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="maxParticipants">Максимум участников</label>
+          <input
+            id="maxParticipants"
+            v-model.number="newGroup.maxParticipants"
+            type="number"
+            min="0"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Создать</button>
+          <button type="button" @click="showGroupModal = false">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </ModalItem>
   </div>
 </template>
 
-<style>
+<style scoped>
 .app {
-  font-family: Arial, sans-serif;
-  height: 100vh;
-  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }
 
 .container {
-  display: flex;
-  width: 100%;
-}
-
-.groups-area {
-  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 20px;
-  height: 100vh;
-  overflow-y: auto;
 }
 
-.groups-actions {
+.header {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.add-group-btn,
-.save-btn {
-  padding: 8px 15px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.add-group-btn:hover,
-.save-btn:hover {
-  background-color: #45a049;
-}
-
-.group-participants {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.group-participant {
-  background-color: white;
-  border: 1px solid #ddd;
-  padding: 5px 10px;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-}
-
-.remove-from-group {
-  cursor: pointer;
-  color: red;
-  margin-left: 15px;
-}
-
-.highlight-group {
-  box-shadow: 0 0 0 2px #4caf50;
-}
-
-.highlight-error-participant {
-  box-shadow: 0 0 0 2px #e44e4e;
-}
-
-.modal-right {
-  height: max-content;
-  position: fixed;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  width: 250px;
-}
-
-.modal-content {
-  padding: 15px;
-}
-
-.close-btn {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  cursor: pointer;
-  font-size: 18px;
-}
-
-.group-checkboxes {
-  margin: 20px 0;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.group-checkbox {
-  margin: 10px 0;
-  display: flex;
+  justify-content: space-between;
   align-items: center;
 }
 
-.group-checkbox input {
-  margin-right: 10px;
+.header h1 {
+  margin: 0;
+  font-size: 1.5em;
+  color: #2c3e50;
 }
 
-.assign-btn {
-  width: 100%;
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.action-button {
   padding: 8px 16px;
-  background-color: #4caf50;
+  background-color: #4CAF50;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.assign-btn:hover {
+.action-button:hover {
   background-color: #45a049;
+}
+
+.main-content {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+@media (min-width: 1200px) {
+  .main-content {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+.participants-section,
+.groups-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.form-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.form-actions button[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.form-actions button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+.form-actions button[type="button"] {
+  background-color: #f5f5f5;
+}
+
+.form-actions button[type="button"]:hover {
+  background-color: #e8e8e8;
 }
 
 .error-message {
@@ -309,7 +412,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #4caf50;
+  border-top: 4px solid #4CAF50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -322,11 +425,5 @@ onMounted(() => {
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
-}
-
-.add-group-btn:disabled,
-.save-btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
 }
 </style>

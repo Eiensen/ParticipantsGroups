@@ -3,13 +3,13 @@ import {
   createWebHashHistory,
   type RouteRecordRaw,
 } from "vue-router";
-import App from "../App.vue";
+import HomeView from "../views/HomeView.vue";
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "home",
-    component: App,
+    component: HomeView,
   },
 ];
 

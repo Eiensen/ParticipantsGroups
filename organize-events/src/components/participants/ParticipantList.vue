@@ -1,140 +1,194 @@
 <script setup lang="ts">
-import { defineProps, computed, PropType } from 'vue';
-import type { Participant } from '../../types';
-import ParticipantItem from './ParticipantItem.vue';
+import { ref } from 'vue'
+import type { Participant } from '../../types'
+import ParticipantItem from './ParticipantItem.vue'
+import ModalItem from '../../views/ModalItem.vue'
 
-/**
- * Component props interface
- */
-const props = defineProps({
-  // List of participants to display
-  participants: {
-    type: Array as PropType<Participant[]>,
-    required: true
-  },
-  // Function to call when adding a new participant
-  addParticipant: {
-    type: Function as PropType<() => void>,
-    required: false
-  },
-  // Function to call when removing a participant
-  removeParticipant: {
-    type: Function as PropType<(id: number) => void>,
-    required: false
-  },
-  // Function to call when selecting a participant
-  onParticipantSelect: {
-    type: Function as PropType<(participant: Participant, event: MouseEvent) => void>,
-    required: false
-  },
-  // Function to call when starting drag operation
-  onParticipantDragStart: {
-    type: Function as PropType<(event: DragEvent, participant: Participant) => void>,
-    required: false
-  },
-  // String for new participant name input
-  newParticipantName: {
-    type: String,
-    default: ''
-  },
-  // Function to check if participant is in any group
-  isInGroup: {
-    type: Function as PropType<(id: number) => boolean>,
-    required: true
-  },
-  // Loading state for adding participant
-  loading: {
-    type: Boolean,
-    default: false
-  }
-});
+interface Props {
+  participants: Participant[]
+  loading: boolean
+}
 
-// Computed property to check if add button should be disabled
-const isAddDisabled = computed(() => !props.newParticipantName.trim() || props.loading);
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'remove', id: string): void
+  (e: 'update', id: string, updates: Partial<Participant>): void
+}>()
 
+const isModalOpen = ref(false)
+
+interface EditingParticipant {
+  id?: string
+  name: string
+  email: string
+  phone?: string
+  groupId?: string
+}
+
+const editingParticipant = ref<EditingParticipant>({
+  name: '',
+  email: '',
+  phone: '',
+  groupId: ''
+})
+
+const handleRemove = (id: string) => {
+  emit('remove', id)
+}
+
+const handleUpdate = (id: string, updates: Partial<Participant>) => {
+  emit('update', id, updates)
+}
 </script>
 
 <template>
-  <div class="participants-sidebar">
-    <h2>Участники</h2>
-    
-    <!-- Форма добавления участника -->
-    <div class="add-participant">
-      <input
-        v-model="newParticipantName"
-        @keyup.enter="addParticipant"
-        placeholder="Введите ФИО"
-        :disabled="loading"
-      />
-      <button 
-        @click="addParticipant"
-        :disabled="isAddDisabled"
-      >
-        {{ loading ? '...' : '+' }}
-      </button>
+  <div class="participants-list">
+    <div class="header">
+      <h2>Участники</h2>
     </div>
 
-    <!-- Список участников -->
-    <div class="participants-list">
+    <div v-if="loading" class="loading">
+      Загрузка участников...
+    </div>
+    
+    <div v-else-if="!participants.length" class="empty-state">
+      Нет участников
+    </div>
+    
+    <div v-else class="list">
       <ParticipantItem
         v-for="participant in participants"
         :key="participant.id"
         :participant="participant"
-        :isInGroup="isInGroup(participant.id)"
-        :onRemove="removeParticipant"
-        :onSelect="onParticipantSelect"
-        :onDragStart="onParticipantDragStart"
+        @remove="handleRemove"
+        @update="handleUpdate"
       />
     </div>
+
+    <ModalItem
+      v-if="isModalOpen"
+      @close="isModalOpen = false"
+    >
+      <template #header>
+        <h3>{{ editingParticipant.id ? 'Редактировать' : 'Добавить' }} участника</h3>
+      </template>
+
+      <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label for="name">Имя</label>
+          <input
+            id="name"
+            v-model="editingParticipant.name"
+            type="text"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            v-model="editingParticipant.email"
+            type="email"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Телефон</label>
+          <input
+            id="phone"
+            v-model="editingParticipant.phone"
+            type="tel"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">
+            {{ editingParticipant.id ? 'Сохранить' : 'Добавить' }}
+          </button>
+          <button type="button" @click="isModalOpen = false">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </ModalItem>
   </div>
 </template>
 
 <style scoped>
-.participants-sidebar {
-  max-width: 30vw;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-right: 1px solid #ddd;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.add-participant {
+.participants-list {
+  height: 100%;
   display: flex;
-  margin-bottom: 15px;
+  flex-direction: column;
 }
 
-.add-participant input {
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.list {
   flex: 1;
-  padding: 8px;
-  margin-right: 5px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
-.add-participant button {
-  padding: 8px 12px;
-  background-color: #4caf50;
-  color: white;
+.loading,
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.form-actions button {
+  padding: 0.5rem 1rem;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
 }
 
-.add-participant button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.form-actions button[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
 }
 
-.add-participant button:not(:disabled):hover {
-  background-color: #45a049;
-}
-
-.participants-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.add-participant input:disabled {
+.form-actions button[type="button"] {
   background-color: #f5f5f5;
-  cursor: not-allowed;
+}
+
+.form-actions button:hover {
+  opacity: 0.9;
 }
 </style>

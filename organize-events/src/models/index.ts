@@ -1,1 +1,1 @@
-export type { ParticipantInterface } from "./Participant";
+export type { Participant } from "./Participant.ts";
