@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         working-directory: ./organize-events
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build Vue app
         working-directory: ./organize-events
