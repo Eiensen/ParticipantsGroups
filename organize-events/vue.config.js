@@ -7,4 +7,5 @@ module.exports = defineConfig({
       entry: "src/main.ts",
     },
   },
+  outputDir: "dist",
 });
