@@ -4,17 +4,14 @@ import type { Group, Participant } from '../../types';
 
 interface Props {
   group: Group;
-  participants: Participant[];
-  onRemove?: (groupId: string) => void;
-  onDrop?: (event: DragEvent) => void;
-  onUpdateGroup?: (id: string, updates: Partial<Group>) => void;
+  participants: Participant[];  
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: 'remove', id: string): void;
   (e: 'update', id: string, updates: Partial<Group>): void;
-  (e: 'drop', event: DragEvent): void;
+  (e: 'drop', event: DragEvent, groupId: string): void;
 }>();
 
 const groupParticipants = computed(() => {
@@ -23,7 +20,9 @@ const groupParticipants = computed(() => {
 
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
-  emit('drop', event);
+  if (props.group.id) {
+    emit('drop', event, props.group.id);
+  }
 };
 
 const handleRemove = () => {
@@ -80,14 +79,6 @@ const handleUpdate = (updates: Partial<Group>) => {
         </button>
       </div>
     </div>
-    <span 
-      v-if="onRemove"
-      class="group-delete-btn" 
-      @click="handleRemove"
-    >
-      X
-    </span>
-    <slot></slot>
   </div>
 </template>
 

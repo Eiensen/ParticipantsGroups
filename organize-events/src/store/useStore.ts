@@ -7,7 +7,6 @@ import {
   push,
   update,
   serverTimestamp,
-  type DatabaseReference,
   type DataSnapshot,
 } from "firebase/database";
 import { db } from "../firebase/config";

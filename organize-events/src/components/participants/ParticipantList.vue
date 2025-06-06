@@ -13,6 +13,8 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'remove', id: string): void
   (e: 'update', id: string, updates: Partial<Participant>): void
+  (e: 'add', participant: Omit<Participant, 'id'>): void
+  (e: 'dragstart', event: DragEvent, participant: Participant): void
 }>()
 
 const isModalOpen = ref(false)
@@ -39,12 +41,61 @@ const handleRemove = (id: string) => {
 const handleUpdate = (id: string, updates: Partial<Participant>) => {
   emit('update', id, updates)
 }
+
+const handleDragStart = (event: DragEvent, participant: Participant) => {
+  emit('dragstart', event, participant)
+}
+
+const handleSubmit = () => {
+  if (editingParticipant.value.id) {
+    // Обновление существующего участника
+    handleUpdate(editingParticipant.value.id, {
+      name: editingParticipant.value.name,
+      email: editingParticipant.value.email,
+      phone: editingParticipant.value.phone,
+    })
+  } else {
+    // Добавление нового участника
+    emit('add', {
+      name: editingParticipant.value.name,
+      email: editingParticipant.value.email,
+      phone: editingParticipant.value.phone,
+    })
+  }
+  
+  // Закрываем модальное окно и очищаем форму
+  isModalOpen.value = false
+  resetForm()
+}
+
+// Вспомогательные функции
+const resetForm = () => {
+  editingParticipant.value = {
+    name: '',
+    email: '',
+    phone: '',
+    groupId: ''
+  }
+}
+
+const openAddModal = () => {
+  resetForm()
+  isModalOpen.value = true
+}
+
 </script>
 
 <template>
   <div class="participants-list">
     <div class="header">
       <h2>Участники</h2>
+      <button 
+        class="add-button"
+        @click="openAddModal"
+        :disabled="loading"
+      >
+        Добавить участника
+      </button>
     </div>
 
     <div v-if="loading" class="loading">
@@ -62,6 +113,7 @@ const handleUpdate = (id: string, updates: Partial<Participant>) => {
         :participant="participant"
         @remove="handleRemove"
         @update="handleUpdate"
+        @dragstart="handleDragStart"
       />
     </div>
 
@@ -117,6 +169,21 @@ const handleUpdate = (id: string, updates: Partial<Participant>) => {
 </template>
 
 <style scoped>
+
+.add-button {
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
 .participants-list {
   height: 100%;
   display: flex;

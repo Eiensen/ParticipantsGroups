@@ -9,11 +9,20 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'remove', id: string): void
   (e: 'update', id: string, updates: Partial<Participant>): void
+  (e: 'dragstart', event: DragEvent, participant: Participant): void
 }>()
 
 const isEditing = ref(false)
 const editedParticipant = ref({ ...props.participant })
 
+const handleDragStart = (event: DragEvent) => {
+  if (props.participant.id) {
+    // Устанавливаем данные для передачи
+    event.dataTransfer?.setData('application/json', JSON.stringify(props.participant))
+    // Оповещаем родительский компонент
+    emit('dragstart', event, props.participant)
+  }
+}
 const handleSubmit = () => {
   if (props.participant.id) {
     emit('update', props.participant.id, {
@@ -41,7 +50,8 @@ const cancelEdit = () => {
   <div 
     class="participant-item"
     draggable="true"
-    @dragstart="$emit('dragstart', participant.id)"
+    @dragstart="handleDragStart"
+    data-testid="participant-item"
   >
     <template v-if="isEditing">
       <form @submit.prevent="handleSubmit" class="edit-form">
