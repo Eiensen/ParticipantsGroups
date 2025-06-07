@@ -65,13 +65,6 @@ const handleCreateGroup = async () => {
 
 <template>
   <div class="groups-container" :class="{ 'is-loading': loading }">
-    <div class="groups-header">
-      <h2>Группы</h2>
-      <button @click="showNewGroupDialog = true" class="add-group-button">
-        Добавить группу
-      </button>
-    </div>
-
     <div v-if="loading" class="loading-overlay">
       Загрузка...
     </div>

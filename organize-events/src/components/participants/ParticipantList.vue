@@ -46,26 +46,38 @@ const handleDragStart = (event: DragEvent, participant: Participant) => {
   emit('dragstart', event, participant)
 }
 
-const handleSubmit = () => {
-  if (editingParticipant.value.id) {
-    // Обновление существующего участника
-    handleUpdate(editingParticipant.value.id, {
-      name: editingParticipant.value.name,
-      email: editingParticipant.value.email,
-      phone: editingParticipant.value.phone,
-    })
-  } else {
-    // Добавление нового участника
-    emit('add', {
-      name: editingParticipant.value.name,
-      email: editingParticipant.value.email,
-      phone: editingParticipant.value.phone,
-    })
-  }
+const handleSubmit = async (e: Event) => {
+  e.preventDefault()
+  console.log('Form submitted', editingParticipant.value)
   
-  // Закрываем модальное окно и очищаем форму
-  isModalOpen.value = false
-  resetForm()
+  if (!editingParticipant.value.name || !editingParticipant.value.email) {
+    console.log('Required fields missing')
+    return
+  }
+
+  try {
+    // if (editingParticipant.value.id) {
+    //   // Обновление существующего участника
+    //   await handleUpdate(editingParticipant.value.id, {
+    //     name: editingParticipant.value.name,
+    //     email: editingParticipant.value.email,
+    //     phone: editingParticipant.value.phone,
+    //   })
+    // } else {
+      // Добавление нового участника
+      emit('add', {
+        name: editingParticipant.value.name,
+        email: editingParticipant.value.email,
+        phone: editingParticipant.value.phone,
+      })
+    //}
+    
+    // Закрываем модальное окно и очищаем форму только при успешном выполнении
+    isModalOpen.value = false
+    resetForm()
+  } catch (err) {
+    console.error('Error submitting form:', err)
+  }
 }
 
 // Вспомогательные функции
@@ -87,17 +99,6 @@ const openAddModal = () => {
 
 <template>
   <div class="participants-list">
-    <div class="header">
-      <h2>Участники</h2>
-      <button 
-        class="add-button"
-        @click="openAddModal"
-        :disabled="loading"
-      >
-        Добавить участника
-      </button>
-    </div>
-
     <div v-if="loading" class="loading">
       Загрузка участников...
     </div>
@@ -153,13 +154,14 @@ const openAddModal = () => {
             v-model="editingParticipant.phone"
             type="tel"
           />
-        </div>
-
-        <div class="form-actions">
-          <button type="submit">
-            {{ editingParticipant.id ? 'Сохранить' : 'Добавить' }}
+        </div>        <div class="form-actions">
+          <button type="submit" :disabled="loading">
+            {{ editingParticipant.id 
+              ? (loading ? 'Сохранение...' : 'Сохранить')
+              : (loading ? 'Добавление...' : 'Добавить')
+            }}
           </button>
-          <button type="button" @click="isModalOpen = false">
+          <button type="button" @click="isModalOpen = false" :disabled="loading">
             Отмена
           </button>
         </div>
