@@ -136,7 +136,7 @@ const cancelEdit = () => {
 
 <style scoped>
 .participant-item {
-  padding: 1rem;
+  padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   margin-bottom: 0.5rem;
@@ -241,5 +241,59 @@ button:hover {
 
 .cancel {
   background-color: #f5f5f5;
+}
+
+@media (max-width: 520px) {
+  .participant-item {
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .info h3 {
+    font-size: 0.95em;
+    margin-bottom: 0.25rem;
+  }
+
+  .info .email,
+  .info .phone,
+  .info .groups {
+    font-size: 0.85em;
+  }
+
+  .actions {
+    margin-top: 0.5rem;
+  }
+
+  .actions button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85em;
+  }
+  /* Оптимизируем размеры кнопок */
+  .actions button {
+    min-width: 25px;
+    min-height: 25px;
+    padding: 4px 6px;
+    font-size: 0.6em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Уменьшаем отступы для компактности */
+  .actions {
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Делаем текст в кнопках компактнее */
+  .edit, .delete, .save, .cancel {
+    white-space: nowrap;
+  }
+
+  /* Уменьшаем поля ввода */
+  .form-group input {
+    padding: 4px 8px;
+    font-size: 0.9em;
+  }
 }
 </style>

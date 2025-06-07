@@ -8,7 +8,7 @@
             class="action-button"
             @click="showParticipantModal = true"
           >
-            Добавить участника
+            +
           </button>
         </div>        <ParticipantList 
           :participants="participants" 
@@ -29,7 +29,7 @@
             class="action-button"
             @click="showGroupModal = true"
           >
-            Создать группу
+            +
           </button>
         </div>        <GroupList 
           :groups="groups"
@@ -359,6 +359,7 @@ const handleDropParticipant = async (event: DragEvent, groupId: string) => {
 
 .form-group {
   margin-bottom: 16px;
+  width: 95%;
 }
 
 .form-group label {
@@ -422,6 +423,65 @@ const handleDropParticipant = async (event: DragEvent, groupId: string) => {
 .form-actions button[type="button"]:disabled {
   background-color: #eeeeee;
   cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .view-wrapper {
+    padding: 10px;
+  }
+
+  .grid-layout {
+    gap: 16px;
+  }
+
+  .section-header {
+    margin-bottom: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 1.2em;
+  }
+  .action-button {
+    padding: 4px 12px;
+    font-size: 0.85em;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+
+  .participants-section,
+  .groups-section {
+    padding: 8px;
+  }
+
+  .section-header {
+    gap: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+    width: 95%;
+  }
+
+  .form-group label {
+    font-size: 0.9em;
+    margin-bottom: 4px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 8px;
+    font-size: 16px; /* Предотвращает масштабирование на iOS */
+  }
+
+  .form-actions {
+    margin-top: 16px;
+  }
+
+  .form-actions button {
+    padding: 8px 12px;
+    font-size: 0.7em;
+    min-height: 40px;
+  }
 }
 
 @media (min-width: 1200px) {

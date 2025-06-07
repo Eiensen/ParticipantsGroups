@@ -92,8 +92,8 @@ const handleUpdate = (updates: Partial<Group>) => {
 
 <style scoped>
 .group-item {
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
   border: 1px solid #ddd;
   background-color: white;
   border-radius: 8px;
@@ -208,5 +208,50 @@ const handleUpdate = (updates: Partial<Group>) => {
   border-style: dashed;
   border-color: #2196F3;
   background-color: #e3f2fd;
+}
+
+@media (max-width: 480px) {
+  .group-item {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .group-header h3 {
+    font-size: 1em;
+  }
+
+  .participants-count {
+    font-size: 0.8em;
+  }
+  .remove-button {
+    font-size: 16px;
+    padding: 4px;
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .group-description {
+    font-size: 0.85em;
+    margin-bottom: 8px;
+  }
+
+  .participant-chip {
+    font-size: 0.8em;
+    padding: 2px 6px;
+    border-radius: 12px;
+  }
+
+  .remove-participant {
+    font-size: 14px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>

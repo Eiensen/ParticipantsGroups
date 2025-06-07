@@ -48,7 +48,8 @@ defineEmits<{
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .modal-header {
@@ -64,6 +65,7 @@ defineEmits<{
   font-size: 24px;
   cursor: pointer;
   color: #666;
+  padding: 8px;
 }
 
 .modal-close:hover {
@@ -78,5 +80,37 @@ defineEmits<{
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .modal-content {
+    padding: 16px;
+    width: 80%;
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    margin-bottom: 16px;
+  }
+
+  .modal-close {
+    font-size: 28px;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Оптимизация для сенсорных экранов */
+  .modal-content {
+    -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+  }
+
+  /* Предотвращаем масштабирование страницы на iOS при фокусе на input */
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
 </style>
