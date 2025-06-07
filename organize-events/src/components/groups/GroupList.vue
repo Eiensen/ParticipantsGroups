@@ -28,7 +28,17 @@ const newGroup = ref({
 const { addGroup } = useStore();
 
 const handleDropOnGroup = (event: DragEvent, groupId: string) => {
-  emit('drop', event, groupId);
+  if (!event.dataTransfer) return;
+  
+  try {
+    const data = JSON.parse(event.dataTransfer.getData('application/json'));
+    if (!data.participantId) return;
+    
+    // Передаем событие выше для обновления в store
+    emit('drop', event, groupId);
+  } catch (error) {
+    console.error('Error handling drop in group list:', error);
+  }
 };
 
 const handleRemoveGroup = (groupId: string) => {

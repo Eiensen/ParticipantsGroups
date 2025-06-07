@@ -16,13 +16,16 @@ const isEditing = ref(false)
 const editedParticipant = ref({ ...props.participant })
 
 const handleDragStart = (event: DragEvent) => {
-  if (props.participant.id) {
-    // Устанавливаем данные для передачи
-    event.dataTransfer?.setData('application/json', JSON.stringify(props.participant))
-    // Оповещаем родительский компонент
-    emit('dragstart', event, props.participant)
+  if (event.dataTransfer) {
+    // Передаем ID участника
+    event.dataTransfer.setData('application/json', JSON.stringify({
+      participantId: props.participant.id,
+      participant: props.participant
+    }));
+    event.dataTransfer.effectAllowed = 'move';
   }
 }
+
 const handleSubmit = () => {
   if (props.participant.id) {
     emit('update', props.participant.id, {

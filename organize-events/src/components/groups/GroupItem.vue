@@ -19,11 +19,39 @@ const groupParticipants = computed(() => {
 });
 
 const handleDrop = (event: DragEvent) => {
-  event.preventDefault();
-  if (props.group.id) {
-    emit('drop', event, props.group.id);
+  if (!event.dataTransfer) return;
+
+  try {
+    const data = JSON.parse(event.dataTransfer.getData('application/json'));
+    if (!data.participantId) return;
+
+    // Проверяем, не находится ли уже участник в группе
+    if (props.group.participants?.includes(data.participantId)) {
+      return;
+    }
+
+    // Проверяем ограничение на количество участников
+    if (props.group.maxParticipants && 
+        props.group.participants && 
+        props.group.participants.length >= props.group.maxParticipants) {
+      alert('Достигнуто максимальное количество участников в группе');
+      return;
+    }
+
+    // Создаем новый массив участников
+    const updatedParticipants = [
+      ...(props.group.participants || []),
+      data.participantId
+    ];
+
+    // Отправляем событие обновления группы
+    emit('update', props.group.id, {
+      participants: updatedParticipants
+    });
+  } catch (error) {
+    console.error('Error handling drop:', error);
   }
-};
+}
 
 const handleRemove = () => {
   if (props.group.id && confirm('Вы уверены, что хотите удалить эту группу?')) {
@@ -92,6 +120,10 @@ const handleUpdate = (updates: Partial<Group>) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
   position: relative;
+  &[dragover] {
+    border: 2px dashed #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+  }
 }
 
 .group-item:hover {

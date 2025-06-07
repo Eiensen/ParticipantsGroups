@@ -277,18 +277,29 @@ const handleRemoveGroup = async (id: string) => {
 };
 
 const handleDropParticipant = async (event: DragEvent, groupId: string) => {
-  const participantId = event.dataTransfer?.getData('text/plain');
-  if (!participantId) return;
-
-  const group = groups.value.find(g => g.id === groupId);
-  if (!group) return;
+  if (!event.dataTransfer) return;
 
   try {
+    const data = JSON.parse(event.dataTransfer.getData('application/json'));
+    if (!data.participantId) return;
+
+    const group = groups.value.find(g => g.id === groupId);
+    if (!group) return;
+
+    // Проверяем ограничение на количество участников
+    if (group.maxParticipants && 
+        group.participants && 
+        group.participants.length >= group.maxParticipants) {
+      alert('Достигнуто максимальное количество участников в группе');
+      return;
+    }
+
+    // Обновляем группу в store
     await store.updateGroup(groupId, {
-      participants: [...(group.participants || []), participantId]
+      participants: [...(group.participants || []), data.participantId]
     });
-  } catch (err) {
-    console.error('Error updating group:', err);
+  } catch (error) {
+    console.error('Error dropping participant:', error);
   }
 };
 </script>
