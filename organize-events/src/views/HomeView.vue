@@ -10,13 +10,15 @@
           >
             Добавить участника
           </button>
-        </div>
-        <ParticipantList 
+        </div>        <ParticipantList 
           :participants="participants" 
+          :groups="groups"
           :loading="loading.participants"
+          :selected-participant-id="selectedParticipantId"
           @add="handleAddParticipant"
           @update="handleUpdateParticipant"
           @remove="handleRemoveParticipant"
+          @participant-click="(participant) => selectedParticipantId = participant.id || null"
         />
       </div>
 
@@ -29,11 +31,11 @@
           >
             Создать группу
           </button>
-        </div>
-        <GroupList 
+        </div>        <GroupList 
           :groups="groups"
           :participants="participants"
           :loading="loading.groups"
+          :selected-participant-id="selectedParticipantId"
           @update="handleUpdateGroup"
           @remove="handleRemoveGroup"
           @drop="handleDropParticipant"
@@ -170,6 +172,9 @@ const store = useStore();
 const participants = computed(() => store.state.value.participants);
 const groups = computed(() => store.state.value.groups);
 const loading = computed(() => store.state.value.loading);
+
+// App states
+const selectedParticipantId = ref<string | null>(null);
 
 // Modal states
 const showParticipantModal = ref(false);

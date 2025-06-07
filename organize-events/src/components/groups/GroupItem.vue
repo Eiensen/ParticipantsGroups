@@ -4,7 +4,8 @@ import type { Group, Participant } from '../../types';
 
 interface Props {
   group: Group;
-  participants: Participant[];  
+  participants: Participant[];
+  selectedParticipantId?: string | null;
 }
 
 const props = defineProps<Props>();
@@ -15,41 +16,17 @@ const emit = defineEmits<{
 }>();
 
 const groupParticipants = computed(() => {
-  return props.participants.filter(p => props.group.participants.includes(p.id || ''));
+  return props.participants.filter(p => props.group.participants?.includes(p.id || ''));
+});
+
+const containsSelectedParticipant = computed(() => {
+  return props.selectedParticipantId && props.group.participants?.includes(props.selectedParticipantId);
 });
 
 const handleDrop = (event: DragEvent) => {
-  if (!event.dataTransfer) return;
-
-  try {
-    const data = JSON.parse(event.dataTransfer.getData('application/json'));
-    if (!data.participantId) return;
-
-    // Проверяем, не находится ли уже участник в группе
-    if (props.group.participants?.includes(data.participantId)) {
-      return;
-    }
-
-    // Проверяем ограничение на количество участников
-    if (props.group.maxParticipants && 
-        props.group.participants && 
-        props.group.participants.length >= props.group.maxParticipants) {
-      alert('Достигнуто максимальное количество участников в группе');
-      return;
-    }
-
-    // Создаем новый массив участников
-    const updatedParticipants = [
-      ...(props.group.participants || []),
-      data.participantId
-    ];
-
-    // Отправляем событие обновления группы
-    emit('update', props.group.id, {
-      participants: updatedParticipants
-    });
-  } catch (error) {
-    console.error('Error handling drop:', error);
+  event.preventDefault();
+  if (props.group.id) {
+    emit('drop', event, props.group.id);
   }
 }
 
@@ -68,6 +45,9 @@ const handleUpdate = (updates: Partial<Group>) => {
 
 <template>  <div 
     class="group-item"
+    :class="{
+      'contains-selected': containsSelectedParticipant
+    }"
     :data-id="group.id"
     :data-testid="'group-' + group.id"
     @dragover.prevent
@@ -118,12 +98,18 @@ const handleUpdate = (updates: Partial<Group>) => {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  position: relative;
-  &[dragover] {
-    border: 2px dashed #4CAF50;
-    background-color: rgba(76, 175, 80, 0.1);
-  }
+  transition: all 0.3s ease;
+}
+
+.group-item.contains-selected {
+  border-color: #2196F3;
+  background-color: #e3f2fd;
+  box-shadow: 0 0 0 2px #2196F3;
+}
+
+.group-item[dragover] {
+  border: 2px dashed #4CAF50;
+  background-color: #f1f8e9;
 }
 
 .group-item:hover {

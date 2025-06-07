@@ -1,29 +1,51 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { Participant } from '../../types'
+import { ref, computed } from 'vue'
+import type { Participant, Group } from '../../types'
 
 const props = defineProps<{
-  participant: Participant
+  participant: Participant;
+  groups: Group[];
+  isSelected?: boolean;
 }>()
 
 const emit = defineEmits<{
-  (e: 'remove', id: string): void
-  (e: 'update', id: string, updates: Partial<Participant>): void
-  (e: 'dragstart', event: DragEvent, participant: Participant): void
+  (e: 'remove', id: string): void;
+  (e: 'update', id: string, updates: Partial<Participant>): void;
+  (e: 'dragstart', event: DragEvent, participant: Participant): void;
+  (e: 'click', participant: Participant): void;
 }>()
 
 const isEditing = ref(false)
 const editedParticipant = ref({ ...props.participant })
 
+// Проверяем, находится ли участник в какой-либо группе
+const isInGroups = computed(() => {
+  return props.groups.some(group => 
+    group.participants?.includes(props.participant.id || '')
+  )
+})
+
+// Получаем названия групп, в которых состоит участник
+const participantGroups = computed(() => {
+  return props.groups
+    .filter(group => group.participants?.includes(props.participant.id || ''))
+    .map(group => group.name)
+    .join(', ')
+})
+
 const handleDragStart = (event: DragEvent) => {
   if (event.dataTransfer) {
-    // Передаем ID участника
     event.dataTransfer.setData('application/json', JSON.stringify({
       participantId: props.participant.id,
       participant: props.participant
     }));
     event.dataTransfer.effectAllowed = 'move';
   }
+  emit('dragstart', event, props.participant)
+}
+
+const handleClick = () => {
+  emit('click', props.participant)
 }
 
 const handleSubmit = () => {
@@ -52,8 +74,13 @@ const cancelEdit = () => {
 <template>
   <div 
     class="participant-item"
+    :class="{
+      'in-groups': isInGroups,
+      'selected': isSelected
+    }"
     draggable="true"
     @dragstart="handleDragStart"
+    @click="handleClick"
     data-testid="participant-item"
   >
     <template v-if="isEditing">
@@ -93,12 +120,13 @@ const cancelEdit = () => {
         <h3>{{ participant.name }}</h3>
         <p class="email">{{ participant.email }}</p>
         <p v-if="participant.phone" class="phone">{{ participant.phone }}</p>
+        <p v-if="isInGroups" class="groups">Группы: {{ participantGroups }}</p>
       </div>
       <div class="actions">
-        <button @click="isEditing = true" class="edit">
+        <button @click.stop="isEditing = true" class="edit">
           Редактировать
         </button>
-        <button @click="handleRemove" class="delete">
+        <button @click.stop="handleRemove" class="delete">
           Удалить
         </button>
       </div>
@@ -114,11 +142,23 @@ const cancelEdit = () => {
   margin-bottom: 0.5rem;
   background-color: white;
   cursor: grab;
-  transition: background-color 0.2s, transform 0.2s;
+  transition: all 0.3s ease;
+}
+
+.participant-item.in-groups {
+  border-color: #4CAF50;
+  background-color: #f1f8e9;
+}
+
+.participant-item.selected {
+  border-color: #2196F3;
+  background-color: #e3f2fd;
+  box-shadow: 0 0 0 2px #2196F3;
 }
 
 .participant-item:hover {
-  background-color: #f9f9f9;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .participant-item:active {
@@ -142,6 +182,13 @@ const cancelEdit = () => {
   margin: 0.25rem 0 0 0;
   color: #666;
   font-size: 0.9em;
+}
+
+.groups {
+  margin: 0.25rem 0 0 0;
+  color: #4CAF50;
+  font-size: 0.9em;
+  font-style: italic;
 }
 
 .actions {

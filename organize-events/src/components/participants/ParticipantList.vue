@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Participant } from '../../types'
+import type { Participant, Group } from '../../types'
 import ParticipantItem from './ParticipantItem.vue'
 import ModalItem from '../../views/ModalItem.vue'
 
 interface Props {
   participants: Participant[]
+  groups: Group[]
   loading: boolean
+  selectedParticipantId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -15,6 +17,7 @@ const emit = defineEmits<{
   (e: 'update', id: string, updates: Partial<Participant>): void
   (e: 'add', participant: Omit<Participant, 'id'>): void
   (e: 'dragstart', event: DragEvent, participant: Participant): void
+  (e: 'participant-click', participant: Participant): void
 }>()
 
 const isModalOpen = ref(false)
@@ -95,6 +98,9 @@ const openAddModal = () => {
   isModalOpen.value = true
 }
 
+const handleParticipantClick = (participant: Participant) => {
+  emit('participant-click', participant)
+}
 </script>
 
 <template>
@@ -112,9 +118,12 @@ const openAddModal = () => {
         v-for="participant in participants"
         :key="participant.id"
         :participant="participant"
+        :groups="groups"
+        :is-selected="participant.id === selectedParticipantId"
         @remove="handleRemove"
         @update="handleUpdate"
-        @dragstart="handleDragStart"
+        @dragstart="$emit('dragstart', $event, participant)"
+        @click="handleParticipantClick"
       />
     </div>
 

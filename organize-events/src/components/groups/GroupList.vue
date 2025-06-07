@@ -9,6 +9,7 @@ interface Props {
   groups: Group[];
   participants: Participant[];
   loading?: boolean;
+  selectedParticipantId?: string | null;
 }
 
 const props = defineProps<Props>();
@@ -73,8 +74,7 @@ const handleCreateGroup = async () => {
 };
 </script>
 
-<template>
-  <div class="groups-container" :class="{ 'is-loading': loading }">
+<template>  <div class="groups-container" :class="{ 'is-loading': loading }">
     <div v-if="loading" class="loading-overlay">
       Загрузка...
     </div>
@@ -89,6 +89,7 @@ const handleCreateGroup = async () => {
         :key="group.id"
         :group="group"
         :participants="participants"
+        :selected-participant-id="selectedParticipantId"
         @remove="handleRemoveGroup"
         @update="handleUpdateGroup"
         @drop="(event: any) => handleDropOnGroup(event, group.id || '')"
